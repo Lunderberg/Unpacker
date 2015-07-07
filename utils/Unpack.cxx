@@ -9,7 +9,7 @@
 #include "TList.h"
 #include "TH2.h"
 
-#include "include/ANSIColors.hh"
+#include "ANSIColors.hh"
 
 //Additional things needed for the analog stuff
 #define LOWER8BITMASK            0xFF  // Bits 0 to 7 inclusive (Analog Crate ID)
@@ -131,6 +131,11 @@ std::ostream& operator<<(std::ostream& out, const CAEN_ADC& val){
 }
 
 int main(int argc,char **argv){
+  if(argc < 1){
+    std::cerr << "Usage: Unpack [FILE]" << std::endl;
+    return 1;
+  }
+
   TApplication app("app",0,0);
   TH2I* hist = new TH2I("hist","hist",32*4, 0, 32*4, 8192, 0, 8192);
 
@@ -168,6 +173,7 @@ int main(int argc,char **argv){
 
     if(bheader_size.size > sizeof(bheader_size)){
       auto bheader = read<RingItemBodyHeader>(infile,bytes_remaining);
+      (void)bheader;
       // std::cout << bheader << std::endl;
     }
 

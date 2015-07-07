@@ -82,4 +82,5 @@ std::ostream& operator<<(std::ostream& out, const ScalerHeader& val){
       << "unknown 3: " << val.unknown_3 << "\n"
       << "unknown 4: " << val.unknown_4 << "\n"
       << "unknown 5: " << val.unknown_5 << "\n";
+  return out;
 }

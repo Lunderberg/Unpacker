@@ -26,10 +26,9 @@ private:
 
   bool uses_fragment_header;
   std::ifstream infile;
-  long bytes_read;
+  size_t bytes_read;
   size_t total_size;
-  long items_unpacked;
-
+  size_t items_unpacked;
 };
 
 #endif

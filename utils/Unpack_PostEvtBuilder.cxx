@@ -15,6 +15,11 @@
 #include "Unpacker.hh"
 
 int main(int argc,char **argv){
+if(argc < 1){
+    std::cerr << "Usage: Unpack_PostEvtBuilder [FILE]" << std::endl;
+    return 1;
+  }
+
   Unpacker unpacker(argv[1]);
 
   unpacker.UnpackAll();

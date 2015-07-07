@@ -68,7 +68,7 @@ int Unpacker::UnpackItem(){
 
 
 
-int Unpacker::HandlePhysicsItem(RingItemHeader& header, char* buffer){
+int Unpacker::HandlePhysicsItem(RingItemHeader& /*header*/, char* buffer){
   RingItemBodyHeader bheader(buffer);
 
   if(uses_fragment_header){
@@ -103,28 +103,30 @@ int Unpacker::HandleAnalogData(char*& buffer){
   }
 
   VME_Timestamp vme_timestamp(buffer);
+
+  return 1;
 }
 
 
 
-int Unpacker::HandleBeginOfRun(RingItemHeader& header, char* buffer){
+int Unpacker::HandleBeginOfRun(RingItemHeader& /*header*/, char* buffer){
   StateChange change(buffer);
   printf("%s\n",change.name);
   return 1;
 }
 
 
-int Unpacker::HandleRingFormat(RingItemHeader& header, char* buffer){
+int Unpacker::HandleRingFormat(RingItemHeader& /*header*/, char* /*buffer*/){
   return 1;
 }
 
-int Unpacker::HandlePeriodicScalers(RingItemHeader& header, char* buffer){
+int Unpacker::HandlePeriodicScalers(RingItemHeader& /*header*/, char* buffer){
   ScalerHeader sheader(buffer);
 
   //int num_modules = header.size/(32*4);
   int num_modules = 5;
 
-  for(int i=0; i<5; i++){
+  for(int i=0; i<num_modules; i++){
     SIS_Scaler scalers(buffer);
   }
 

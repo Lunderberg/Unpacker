@@ -5,7 +5,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "include/ANSIColors.hh"
+#include "ANSIColors.hh"
 
 //Additional things needed for the analog stuff
 #define LOWER8BITMASK            0xFF  // Bits 0 to 7 inclusive (Analog Crate ID)
@@ -116,6 +116,10 @@ void print_header(CAENv785_Header header){
 }
 
 int main(int argc,char **argv){
+  if(argc < 1){
+    std::cerr << "Usage: Colored_Hexdump_Split [FILE]" << std::endl;
+    return 1;
+  }
 
   std::ifstream infile;
   infile.open(argv[1], std::ios::binary);

@@ -6,7 +6,7 @@
 
 INCLUDES   = include
 CPP        = g++
-CFLAGS     = -Wall -Wextra -pedantic -O3 -std=c++11
+CFLAGS     = -Wall -Wextra -pedantic -std=c++11 -O3 -g
 LINKFLAGS  =
 SRC_SUFFIX = cxx
 
@@ -46,7 +46,7 @@ run_and_test = @$(1) 2> $(2).log || touch $(2).error; \
                 fi; \
                 rm -f $(2).log $(2).error
 
-all: $(EXECUTABLES)
+all: $(EXECUTABLES) $(LIBRARY_OUTPUT)
 	@echo -e "$(OK_COLOR)Compilation successful$(NO_COLOR)"
 
 bin/%: build/sandbox/%.o | $(LIBRARY_OUTPUT) bin

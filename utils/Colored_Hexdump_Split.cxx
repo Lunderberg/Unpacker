@@ -116,7 +116,7 @@ void print_header(CAENv785_Header header){
 }
 
 int main(int argc,char **argv){
-  if(argc < 1){
+  if(argc < 2){
     std::cerr << "Usage: Colored_Hexdump_Split [FILE]" << std::endl;
     return 1;
   }
@@ -131,13 +131,13 @@ int main(int argc,char **argv){
     infile.read(buffer, sizeof(RingItemHeader));
     RingItemHeader header;
     memcpy((char*)&header, buffer, sizeof(RingItemHeader));
-    //printf("Size: %d\n", header.size);
+    printf("Size: %d\n", header.size);
     infile.read(buffer+sizeof(RingItemHeader), header.size - sizeof(header));
 
-    if(header.type!=20){
-      //std::cout << "Skipping type 0x" << std::hex << header.type << std::dec << std::endl;
-      continue;
-    }
+    // if(header.type!=20){
+    //   //std::cout << "Skipping type 0x" << std::hex << header.type << std::dec << std::endl;
+    //   continue;
+    // }
 
     for(unsigned int i=0; i<header.size-1; i+=2){
       if(i%16==0){

@@ -1,5 +1,7 @@
 #include "Unpacker.hh"
 
+#include <cassert>
+#include <iomanip>
 #include <limits>
 
 #include "ProgressBar.hh"
@@ -17,7 +19,14 @@ Unpacker::Unpacker(const char* filename)
   total_size = FindFileSize(filename);
   infile.open(filename, std::ios_base::binary);
 
+
   hist = new TH2I("hist","hist",32*8,0,32*8, 4096, 0, 4096);
+  for(unsigned int i=0; i<sizeof(total_scalers)/sizeof(long); i++){
+    total_scalers[i] = 0;
+  }
+  hist_frontback = new TH2I("hist_frontback","hist_frontback",
+                            3600, 0, 3600,
+                            32*8, 0, 32*8);
 }
 
 int Unpacker::UnpackAll(){
@@ -27,6 +36,9 @@ int Unpacker::UnpackAll(){
   while(!infile.eof() &&
         ((bytes_read + 8192) < total_size)){
     int unpacked = UnpackItem();
+    if(unpacked < 0){
+      break;
+    }
     total_unpacked += unpacked;
     prog.Show(bytes_read);
   }
@@ -34,10 +46,18 @@ int Unpacker::UnpackAll(){
 }
 
 int Unpacker::UnpackItem(){
-  char buffer[8192];
+
+  char buffer[1024*1024*2];
 
   RingItemHeader header;
   infile.read((char*)&header, sizeof(RingItemHeader));
+
+  if(header.size>sizeof(buffer)){
+    infile.ignore(header.size - sizeof(RingItemHeader));
+    std::cout << "Ignored a buffer of size " << header.size << std::endl;
+    return -1;
+  }
+
   infile.read(buffer, header.size - sizeof(RingItemHeader));
   bytes_read += header.size;
   int unpacked = 0;
@@ -80,16 +100,16 @@ int Unpacker::HandlePhysicsItem(RingItemHeader& /*header*/, char* buffer){
       FragmentHeader fheader(buffer);
       RingItemHeader rheader(buffer);
       RingItemBodyHeader bheader(buffer);
-      HandleAnalogData(buffer);
+      HandleAnalogData(bheader, buffer);
     }
   } else {
-    HandleAnalogData(buffer);
+    HandleAnalogData(bheader, buffer);
   }
 
   return 1;
 }
 
-int Unpacker::HandleAnalogData(char*& buffer){
+int Unpacker::HandleAnalogData(RingItemBodyHeader& bheader, char*& buffer){
   VMUSB_Header vmusb_header(buffer);
 
   int num_adc_channels = vmusb_header.size()/2 - 3;
@@ -99,6 +119,8 @@ int Unpacker::HandleAnalogData(char*& buffer){
     if(adc.entry_type() == CAEN_ADC::Event){
       int id = 32*(adc.card_num()-5) + adc.channel_num();
       hist->Fill(id, adc.adcvalue());
+      hist_frontback->Fill(bheader.timestamp/1e7,id);
+      //hist_frontback->Fill(bheader.timestamp/1e5,id);
     }
   }
 
@@ -111,7 +133,6 @@ int Unpacker::HandleAnalogData(char*& buffer){
 
 int Unpacker::HandleBeginOfRun(RingItemHeader& /*header*/, char* buffer){
   StateChange change(buffer);
-  printf("%s\n",change.name);
   return 1;
 }
 
@@ -128,6 +149,10 @@ int Unpacker::HandlePeriodicScalers(RingItemHeader& /*header*/, char* buffer){
 
   for(int i=0; i<num_modules; i++){
     SIS_Scaler scalers(buffer);
+    for(int j=0; j<32; j++){
+      int id = i*32 + j;
+      total_scalers[id] += scalers.GetValue(j);
+    }
   }
 
   return 1;

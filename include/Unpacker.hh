@@ -16,13 +16,16 @@ public:
   int UnpackItem();
 
   TH2I* hist;
+  TH2I* hist_frontback;
+  long total_scalers[32*5];
 private:
   int HandlePhysicsItem(RingItemHeader& header, char* buffer);
   int HandleBeginOfRun(RingItemHeader& header, char* buffer);
   int HandlePeriodicScalers(RingItemHeader& header, char* buffer);
   int HandleRingFormat(RingItemHeader& header, char* buffer);
 
-  int HandleAnalogData(char*& buffer);
+  //int HandleAnalogData(char*& buffer);
+  int HandleAnalogData(RingItemBodyHeader& bheader, char*& buffer);
 
   bool uses_fragment_header;
   std::ifstream infile;

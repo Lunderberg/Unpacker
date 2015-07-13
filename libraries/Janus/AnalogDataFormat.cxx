@@ -39,6 +39,10 @@ std::ostream& operator<<(std::ostream& out, const CAEN_ADC& val){
   case CAEN_ADC::End:
     out << "\nEnd of block event";
     break;
+
+  case CAEN_ADC::Invalid:
+    out << "\nInvalid block";
+    break;
   }
   return out;
 }

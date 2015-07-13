@@ -23,7 +23,7 @@ struct CAEN_ADC{
 
   CAEN_ADC(char*& buffer);
 
-  enum EntryType{ Begin=0x2, Event=0x0, End=0x4 };
+  enum EntryType{ Begin=0x2, Event=0x0, End=0x4, Invalid=0x6 };
 
   int card_num()         const  { return           (head & 0xf800)>>11; }
   EntryType entry_type() const  { return EntryType((head & 0x0700)>>8); }

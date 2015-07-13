@@ -7,6 +7,7 @@
 #include "TH2.h"
 
 #include "AnalogDataFormat.hh"
+#include "Histograms_Base.hh"
 #include "RingDataFormat.hh"
 
 class Unpacker{
@@ -15,9 +16,11 @@ public:
   int UnpackAll();
   int UnpackItem();
 
-  TH2I* hist;
-  TH2I* hist_frontback;
+  Histograms_Base hists;
   long total_scalers[32*5];
+  long first_timestamp;
+  long last_timestamp;
+  double clockrate;
 private:
   int HandlePhysicsItem(RingItemHeader& header, char* buffer);
   int HandleBeginOfRun(RingItemHeader& header, char* buffer);

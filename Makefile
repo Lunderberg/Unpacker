@@ -51,11 +51,11 @@ all: $(EXECUTABLES) $(LIBRARY_OUTPUT)
 
 bin/%: build/sandbox/%.o | $(LIBRARY_OUTPUT) bin
 	@echo -e "$(COM_COLOR)Compiling $(OBJ_COLOR)$@ $(NO_COLOR)"
-	$(call run_and_test, $(CPP) $< -o $@ $(LINKFLAGS), $<, $@)
+	$(call run_and_test, $(CPP) $< -o $@ $(LINKFLAGS), $@)
 
 bin/%: build/utils/%.o | $(LIBRARY_OUTPUT) bin
 	@echo -e "$(COM_COLOR)Compiling $(OBJ_COLOR)$@ $(NO_COLOR)"
-	$(call run_and_test, $(CPP) $< -o $@ $(LINKFLAGS), $<, $@)
+	$(call run_and_test, $(CPP) $< -o $@ $(LINKFLAGS), $@)
 
 bin:
 	@mkdir -p $@

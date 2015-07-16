@@ -12,7 +12,7 @@ struct RingItemHeader {
   uint32_t     type;
 
   RingItemHeader(char*& buffer);
-  RingItemHeader(){ }
+  RingItemHeader() : size(0), type(0) { }
 } __attribute__((packed));
 
 std::ostream& operator<<(std::ostream& out, const RingItemHeader& val);

@@ -4,22 +4,14 @@
 #include <iomanip>
 #include <limits>
 
+#include "FileDataSource.hh"
 #include "ProgressBar.hh"
 #include "RingItemTypes.hh"
 
-size_t FindFileSize(const char* fname) {
-  ifstream temp;
-  temp.open(fname, std::ios::in | std::ios::ate);
-  return temp.tellg();
-}
-
 Unpacker::Unpacker(const char* filename)
   : first_timestamp(-1), last_timestamp(-1),
-    clockrate(2.27238e6),
-    bytes_read(0), items_unpacked(0) {
-  total_size = FindFileSize(filename);
-  infile.open(filename, std::ios_base::binary);
-
+    clockrate(2.27238e6), items_unpacked(0) {
+  source = std::unique_ptr<DataSource>(new FileDataSource(filename));
 
   for(unsigned int i=0; i<sizeof(total_scalers)/sizeof(long); i++){
     total_scalers[i] = 0;
@@ -27,57 +19,53 @@ Unpacker::Unpacker(const char* filename)
 }
 
 int Unpacker::UnpackAll(size_t max_unpacked){
-  ProgressBar prog(total_size, 10000);
+  ProgressBar prog(source->total_bytes(), 10000);
+
+  std::unique_ptr<RingItem> item;
 
   int total_unpacked = 0;
-  while(!infile.eof() &&
-        ((bytes_read + 8192) < total_size) &&
+  while((item = source->get_next()) &&
         (max_unpacked==0 || items_unpacked<max_unpacked)){
-    int unpacked = UnpackItem();
+    int unpacked = UnpackItem(*item);
     if(unpacked < 0){
       break;
     }
     total_unpacked += unpacked;
-    prog.Show(bytes_read);
+    prog.Show(source->bytes_read());
   }
   return total_unpacked;
 }
 
 int Unpacker::UnpackItem(){
-
-  char buffer[1024*1024*2];
-
-  RingItemHeader header;
-  infile.read((char*)&header, sizeof(RingItemHeader));
-
-  if(header.size>sizeof(buffer)){
-    infile.ignore(header.size - sizeof(RingItemHeader));
-    std::cout << "Ignored a buffer of size " << header.size << std::endl;
-    return -1;
+  auto item = source->get_next();
+  if(item){
+    return UnpackItem(*item);
+  } else {
+    return 0;
   }
+}
 
+int Unpacker::UnpackItem(RingItem& item){
   hists.Fill("event_size",
-             2048, 0, 2048, header.size);
+             2048, 0, 2048, item.header.size);
 
-  infile.read(buffer, header.size - sizeof(RingItemHeader));
-  bytes_read += header.size;
   int unpacked = 0;
 
-  switch(HeaderType(header.type)){
+  switch(HeaderType(item.header.type)){
   case HeaderType::PHYSICS_EVENT:
-    unpacked = HandlePhysicsItem(header, buffer);
+    unpacked = HandlePhysicsItem(item);
     break;
 
   case HeaderType::BEGIN_RUN:
-    unpacked = HandleBeginOfRun(header, buffer);
+    unpacked = HandleBeginOfRun(item);
     break;
 
   case HeaderType::RING_FORMAT:
-    unpacked = HandleRingFormat(header, buffer);
+    unpacked = HandleRingFormat(item);
     break;
 
   case HeaderType::PERIODIC_SCALERS:
-    unpacked = HandlePeriodicScalers(header, buffer);
+    unpacked = HandlePeriodicScalers(item);
     break;
 
   // These ring items are ignored.
@@ -86,7 +74,7 @@ int Unpacker::UnpackItem(){
     break;
 
   default:
-    unpacked = HandleUnknownItem(header, buffer);
+    unpacked = HandleUnknownItem(item);
     break;
   }
 
@@ -96,7 +84,9 @@ int Unpacker::UnpackItem(){
 
 
 
-int Unpacker::HandlePhysicsItem(RingItemHeader& /*header*/, char* buffer){
+int Unpacker::HandlePhysicsItem(RingItem& item){
+  char* buffer = item.body.data();
+
   RingItemBodyHeader bheader(buffer);
 
   static uint64_t prev_ts = 0;
@@ -205,17 +195,20 @@ int Unpacker::HandleAnalogData(RingItemBodyHeader& bheader, char*& buffer){
 
 
 
-int Unpacker::HandleBeginOfRun(RingItemHeader& /*header*/, char* buffer){
+int Unpacker::HandleBeginOfRun(RingItem& item){
+  char* buffer = item.body.data();
   StateChange change(buffer);
   return 1;
 }
 
 
-int Unpacker::HandleRingFormat(RingItemHeader& /*header*/, char* /*buffer*/){
+int Unpacker::HandleRingFormat(RingItem& /*item*/){
   return 1;
 }
 
-int Unpacker::HandlePeriodicScalers(RingItemHeader& /*header*/, char* buffer){
+int Unpacker::HandlePeriodicScalers(RingItem& item){
+  char* buffer = item.body.data();
+
   ScalerHeader sheader(buffer);
 
   static uint64_t prev_ts = 0;
@@ -245,10 +238,12 @@ int Unpacker::HandlePeriodicScalers(RingItemHeader& /*header*/, char* buffer){
   return 1;
 }
 
-int Unpacker::HandleUnknownItem(RingItemHeader& header, char* buffer){
-  std::cout << "Unknown item\n" << header << "\n";
+int Unpacker::HandleUnknownItem(RingItem& item){
+  char* buffer = item.body.data();
 
-  for(unsigned int i=0; i<header.size-1; i+=2){
+  std::cout << "Unknown item\n" << item.header << "\n";
+
+  for(unsigned int i=0; i<item.header.size-1; i+=2){
     if(i%16==0){
       if(i){
         printf("\n");

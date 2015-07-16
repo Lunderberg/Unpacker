@@ -3,10 +3,12 @@
 #ifndef __CINT__
 
 #include <fstream>
+#include <memory>
 
 #include "TH2.h"
 
 #include "AnalogDataFormat.hh"
+#include "DataSource.hh"
 #include "Histograms_Base.hh"
 #include "RingDataFormat.hh"
 
@@ -23,19 +25,20 @@ public:
   double clockrate;
 
 private:
-  int HandlePhysicsItem(RingItemHeader& header, char* buffer);
-  int HandleBeginOfRun(RingItemHeader& header, char* buffer);
-  int HandlePeriodicScalers(RingItemHeader& header, char* buffer);
-  int HandleRingFormat(RingItemHeader& header, char* buffer);
-  int HandleUnknownItem(RingItemHeader& header, char* buffer);
+  int UnpackItem(RingItem& item);
+
+  int HandlePhysicsItem(RingItem& item);
+  int HandleBeginOfRun(RingItem& item);
+  int HandlePeriodicScalers(RingItem& item);
+  int HandleRingFormat(RingItem& item);
+  int HandleUnknownItem(RingItem& item);
 
   int HandleAnalogData(RingItemBodyHeader& bheader, char*& buffer);
 
   bool UsesFragmentHeader(const char* buffer);
 
-  std::ifstream infile;
-  size_t bytes_read;
-  size_t total_size;
+  std::unique_ptr<DataSource> source;
+
   size_t items_unpacked;
 };
 

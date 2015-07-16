@@ -61,6 +61,8 @@ struct StateChange {
   StateChange(char*& buffer);
 } __attribute__((packed));
 
+std::ostream& operator<<(std::ostream& out, const StateChange& val);
+
 
 struct ScalerHeader {
   RingItemBodyHeader bodyheader;

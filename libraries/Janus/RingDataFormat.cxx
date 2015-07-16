@@ -65,6 +65,18 @@ StateChange::StateChange(char*& buffer)
   buffer += bytes;
 }
 
+std::ostream& operator<<(std::ostream& out, const StateChange& val){
+  time_t longtime = val.unix_time;
+  out << val.bodyheader << "\n"
+      << "Run number: " << val.run_number << "\n"
+      << "Unknown: " << val.unknown << "\n"
+      << "unix time: " << val.unix_time << "\n"
+      << "unix time: " << ctime(&longtime)
+      << "Unknown 2: " << val.unknown_2 << "\n"
+      << "Name: " << val.name << "\n";
+  return out;
+}
+
 ScalerHeader::ScalerHeader(char*& buffer)
   : bodyheader(buffer) {
   int bytes = sizeof(*this) - sizeof(bodyheader);

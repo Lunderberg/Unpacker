@@ -21,15 +21,18 @@ public:
   long first_timestamp;
   long last_timestamp;
   double clockrate;
+
 private:
   int HandlePhysicsItem(RingItemHeader& header, char* buffer);
   int HandleBeginOfRun(RingItemHeader& header, char* buffer);
   int HandlePeriodicScalers(RingItemHeader& header, char* buffer);
   int HandleRingFormat(RingItemHeader& header, char* buffer);
+  int HandleUnknownItem(RingItemHeader& header, char* buffer);
 
   int HandleAnalogData(RingItemBodyHeader& bheader, char*& buffer);
 
-  bool uses_fragment_header;
+  bool UsesFragmentHeader(const char* buffer);
+
   std::ifstream infile;
   size_t bytes_read;
   size_t total_size;

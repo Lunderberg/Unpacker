@@ -16,7 +16,6 @@ size_t FindFileSize(const char* fname) {
 Unpacker::Unpacker(const char* filename)
   : first_timestamp(-1), last_timestamp(-1),
     clockrate(2.27238e6),
-    uses_fragment_header(true),
     bytes_read(0), items_unpacked(0) {
   total_size = FindFileSize(filename);
   infile.open(filename, std::ios_base::binary);
@@ -81,7 +80,13 @@ int Unpacker::UnpackItem(){
     unpacked = HandlePeriodicScalers(header, buffer);
     break;
 
+  // These ring items are ignored.
+  case HeaderType::PHYSICS_EVENT_COUNT:
+  case HeaderType::EVB_GLOM_INFO:
+    break;
+
   default:
+    unpacked = HandleUnknownItem(header, buffer);
     break;
   }
 
@@ -110,7 +115,8 @@ int Unpacker::HandlePhysicsItem(RingItemHeader& /*header*/, char* buffer){
   last_timestamp = bheader.timestamp;
 
   int num_channels = 0;
-  if(uses_fragment_header){
+
+  if(UsesFragmentHeader(buffer)){
     char* end = buffer;
     BodySize bsize(buffer);
     end += bsize.size;
@@ -134,6 +140,17 @@ int Unpacker::HandlePhysicsItem(RingItemHeader& /*header*/, char* buffer){
              10000, 0, 1e5, tsdiff);
 
   return 1;
+}
+
+// Not the most elegant, but it should work.
+// I've never seen a fragment header with a non-zero barrier type,
+//   and the sourceids should be reasonable.
+// If I am reading an analog bunch instead, these checks should fail.
+bool Unpacker::UsesFragmentHeader(const char* buffer){
+  const FragmentHeader* fheader = reinterpret_cast<const FragmentHeader*>(buffer + sizeof(BodySize));
+  bool good_sourceid = fheader->sourceid < 10;
+  bool good_barrier = fheader->barrier == 0;
+  return good_sourceid && good_barrier;
 }
 
 int Unpacker::HandleAnalogData(RingItemBodyHeader& bheader, char*& buffer){
@@ -226,4 +243,30 @@ int Unpacker::HandlePeriodicScalers(RingItemHeader& /*header*/, char* buffer){
   }
 
   return 1;
+}
+
+int Unpacker::HandleUnknownItem(RingItemHeader& header, char* buffer){
+  std::cout << "Unknown item\n" << header << "\n";
+
+  for(unsigned int i=0; i<header.size-1; i+=2){
+    if(i%16==0){
+      if(i){
+        printf("\n");
+      }
+      printf(GREEN "%07x  " RESET_COLOR, i);
+    }
+    unsigned short val = *(unsigned short*)(buffer+i);
+    switch(val){
+    case 0xffff:
+      printf(BLUE);
+      break;
+    case 0x001e:
+      printf(RED);
+      break;
+    };
+    printf("0x%04x " RESET_COLOR, val);
+  }
+  std::cout << std::endl;
+
+  return 0;
 }

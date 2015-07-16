@@ -13,7 +13,7 @@
 class Unpacker{
 public:
   Unpacker(const char* filename);
-  int UnpackAll();
+  int UnpackAll(size_t max_unpacked = 0);
   int UnpackItem();
 
   Histograms_Base hists;
@@ -27,7 +27,6 @@ private:
   int HandlePeriodicScalers(RingItemHeader& header, char* buffer);
   int HandleRingFormat(RingItemHeader& header, char* buffer);
 
-  //int HandleAnalogData(char*& buffer);
   int HandleAnalogData(RingItemBodyHeader& bheader, char*& buffer);
 
   bool uses_fragment_header;

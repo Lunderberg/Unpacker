@@ -27,12 +27,13 @@ Unpacker::Unpacker(const char* filename)
   }
 }
 
-int Unpacker::UnpackAll(){
+int Unpacker::UnpackAll(size_t max_unpacked){
   ProgressBar prog(total_size, 10000);
 
   int total_unpacked = 0;
   while(!infile.eof() &&
-        ((bytes_read + 8192) < total_size)){
+        ((bytes_read + 8192) < total_size) &&
+        (max_unpacked==0 || items_unpacked<max_unpacked)){
     int unpacked = UnpackItem();
     if(unpacked < 0){
       break;
@@ -84,6 +85,7 @@ int Unpacker::UnpackItem(){
     break;
   }
 
+  items_unpacked++;
   return unpacked;
 }
 
@@ -97,7 +99,7 @@ int Unpacker::HandlePhysicsItem(RingItemHeader& /*header*/, char* buffer){
   prev_ts = bheader.timestamp;
   if(prev_ts != 0){
     hists.Fill("event_tsdiff",
-               10000, 0, 1e5, tsdiff);
+               100000, 0, 1e5, tsdiff);
     hists.Fill("event_tdiff",
                10000, 0, 1e-2, tsdiff/clockrate);
   }

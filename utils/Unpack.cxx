@@ -20,6 +20,7 @@ int main(int argc,char **argv){
   std::string outfile;
   std::string scaler_file;
   bool show_histograms;
+  size_t nevents;
   bool help;
 
   ArgParser parser;
@@ -32,6 +33,8 @@ int main(int argc,char **argv){
     .description("Open a canvas with diagnostic histograms");
   parser.option("s scalers", &scaler_file)
     .description("Output file for scalers");
+  parser.option("n num-events", &nevents)
+    .description("Maximum number of events to unpack");
   parser.option("h help", &help)
     .description("Print help message");
   try{
@@ -50,7 +53,7 @@ int main(int argc,char **argv){
 
   Unpacker unpacker(infile.c_str());
 
-  unpacker.UnpackAll();
+  unpacker.UnpackAll(nevents);
 
   std::cout << "First timestamp: " << unpacker.first_timestamp << std::endl;
   std::cout << "Last timestamp: " << unpacker.last_timestamp << std::endl;
@@ -86,4 +89,3 @@ int main(int argc,char **argv){
 
   return 0;
 }
-

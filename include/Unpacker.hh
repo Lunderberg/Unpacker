@@ -14,7 +14,7 @@
 
 class Unpacker{
 public:
-  Unpacker(const char* filename);
+  Unpacker(const char* filename, bool using_ring = false);
   int UnpackAll(size_t max_unpacked = 0);
   int UnpackItem();
 

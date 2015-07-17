@@ -1,17 +1,33 @@
 #include "Unpacker.hh"
 
 #include <cassert>
+#include <csignal>
 #include <iomanip>
 #include <limits>
 
 #include "FileDataSource.hh"
 #include "ProgressBar.hh"
+#include "RingDataSource.hh"
 #include "RingItemTypes.hh"
 
-Unpacker::Unpacker(const char* filename)
+bool signal_received = false;
+void signalhandler(int sig){
+  if(sig == SIGINT){
+    signal_received = true;
+  }
+}
+
+Unpacker::Unpacker(const char* filename, bool using_ring)
   : first_timestamp(-1), last_timestamp(-1),
-    clockrate(2.27238e6), items_unpacked(0) {
-  source = std::unique_ptr<DataSource>(new FileDataSource(filename));
+    clockrate(1.75e3), items_unpacked(0) {
+
+  signal(SIGINT, signalhandler);
+
+  if(using_ring){
+    source = std::unique_ptr<DataSource>(new RingDataSource(filename));
+  } else {
+    source = std::unique_ptr<DataSource>(new FileDataSource(filename));
+  }
 
   for(unsigned int i=0; i<sizeof(total_scalers)/sizeof(long); i++){
     total_scalers[i] = 0;
@@ -25,7 +41,8 @@ int Unpacker::UnpackAll(size_t max_unpacked){
 
   int total_unpacked = 0;
   while((item = source->get_next()) &&
-        (max_unpacked==0 || items_unpacked<max_unpacked)){
+        (max_unpacked==0 || items_unpacked<max_unpacked) &&
+        !signal_received){
     int unpacked = UnpackItem(*item);
     if(unpacked < 0){
       break;
@@ -173,6 +190,9 @@ int Unpacker::HandleAnalogData(RingItemBodyHeader& bheader, char*& buffer){
       hists.Fill("id_time",
                   32*4, 0, 32*4, id,
                   7200, 0, 7200, bheader.timestamp/clockrate);
+      hists.Fill("id_timestamp_from_connect",
+                 1e4, 0, 1e6, bheader.timestamp - first_timestamp,
+                 32*4, 0, 32*4, id);
       if(id==40){
         hists.Fill("chan40_en_time",
                     7200, 0, 7200, bheader.timestamp/clockrate,

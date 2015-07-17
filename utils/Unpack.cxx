@@ -17,6 +17,7 @@
 
 int main(int argc,char **argv){
   std::string infile;
+  std::string inring;
   std::string outfile;
   std::string scaler_file;
   bool show_histograms;
@@ -25,8 +26,9 @@ int main(int argc,char **argv){
 
   ArgParser parser;
   parser.option("i input", &infile)
-    .description("Input filename")
-    .required();
+    .description("Input filename");
+  parser.option("r ring", &inring)
+    .description("Input ring");
   parser.option("o output", &outfile)
     .description("Output filename");
   parser.option("c canvas", &show_histograms)
@@ -37,6 +39,7 @@ int main(int argc,char **argv){
     .description("Maximum number of events to unpack");
   parser.option("h help", &help)
     .description("Print help message");
+
   try{
     parser.parse(argc, argv);
   } catch (ParseError& e){
@@ -50,8 +53,23 @@ int main(int argc,char **argv){
     return 0;
   }
 
+  if(infile.length() && inring.length()){
+    std::cerr << "ERROR: Only one of --input and --ring can be specified" << "\n"
+              << parser << std::endl;
+    return 1;
+  }
 
-  Unpacker unpacker(infile.c_str());
+  if(!infile.length() && !inring.length()){
+    std::cerr << "ERROR: One of --input and --ring must be specified" << "\n"
+              << parser << std::endl;
+    return 1;
+  }
+
+
+
+  bool using_ring = inring.length();
+
+  Unpacker unpacker(using_ring ? inring.c_str() : infile.c_str(), using_ring);
 
   unpacker.UnpackAll(nevents);
 

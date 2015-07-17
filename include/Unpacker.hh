@@ -3,7 +3,9 @@
 #ifndef __CINT__
 
 #include <fstream>
+#include <functional>
 #include <memory>
+#include <vector>
 
 #include "TH2.h"
 
@@ -16,7 +18,10 @@ class Unpacker{
 public:
   Unpacker(const char* filename, bool using_ring = false);
   int UnpackAll(size_t max_unpacked = 0);
+  int UnpackItem(RingItem& item);
   int UnpackItem();
+
+  void AddPeriodicCallback(std::function<void()> callback){ callbacks.push_back(callback); }
 
   Histograms_Base hists;
   long total_scalers[32*5];
@@ -25,7 +30,6 @@ public:
   double clockrate;
 
 private:
-  int UnpackItem(RingItem& item);
 
   int HandlePhysicsItem(RingItem& item);
   int HandleBeginOfRun(RingItem& item);
@@ -40,6 +44,9 @@ private:
   std::unique_ptr<DataSource> source;
 
   size_t items_unpacked;
+
+  std::vector<std::function<void()> > callbacks;
+  size_t callback_frequency;
 };
 
 #endif

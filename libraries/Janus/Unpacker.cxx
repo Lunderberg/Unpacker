@@ -19,7 +19,8 @@ void signalhandler(int sig){
 
 Unpacker::Unpacker(const char* filename, bool using_ring)
   : first_timestamp(-1), last_timestamp(-1),
-    clockrate(1.75e3), items_unpacked(0) {
+    clockrate(1.75e3), items_unpacked(0),
+    callback_frequency(1000) {
 
   signal(SIGINT, signalhandler);
 
@@ -96,6 +97,13 @@ int Unpacker::UnpackItem(RingItem& item){
   }
 
   items_unpacked++;
+  if(items_unpacked % callback_frequency == 0){
+    for(auto& callback : callbacks){
+      callback();
+    }
+  }
+
+
   return unpacked;
 }
 

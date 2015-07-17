@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <thread>
 
 #include "TApplication.h"
 #include "TCanvas.h"
@@ -71,25 +72,27 @@ int main(int argc,char **argv){
 
   Unpacker unpacker(using_ring ? inring.c_str() : infile.c_str(), using_ring);
 
+  std::thread root_app_thread;
+  TApplication app("app",0,0);
+  if(show_histograms){
+    TCanvas* can = new TCanvas;
+    can->Connect("Closed()", "TApplication", &app, "Terminate()");
+
+    unpacker.hists.Fill("id_timestamp_from_connect",
+                        1e4, 0, 1e6, -1e99,
+                        32*4, 0, 32*4, -1e99);
+    unpacker.hists.GetHist("id_timestamp_from_connect")->Draw("colz");
+
+    unpacker.AddPeriodicCallback( [can](){ can->Modified(); } );
+
+    root_app_thread = std::thread([&app](){ app.Run(true); } );
+  }
+
   unpacker.UnpackAll(nevents);
 
   std::cout << "First timestamp: " << unpacker.first_timestamp << std::endl;
   std::cout << "Last timestamp: " << unpacker.last_timestamp << std::endl;
   std::cout << "Timestamp diff: " << unpacker.last_timestamp - unpacker.first_timestamp << std::endl;
-  std::cout << "Timestamp diff (sec): " << (unpacker.last_timestamp - unpacker.first_timestamp)/2.25e6
-            << std::endl;
-
-  if(show_histograms){
-    TApplication app("app",0,0);
-    TCanvas* can = new TCanvas;
-    can->Connect("Closed()", "TApplication", &app, "Terminate()");
-    // can->Divide(1,2);
-    // can->cd(1);
-    unpacker.hists.GetHist("id_en")->Draw("colz");
-    // can->cd(2);
-    // unpacker.hist_frontback->Draw("colz");
-    app.Run(true);
-  }
 
   if(scaler_file.length()){
     std::ofstream outfile(scaler_file);
@@ -104,6 +107,9 @@ int main(int argc,char **argv){
     tf->Close();
   }
 
+  if(show_histograms){
+    root_app_thread.join();
+  }
 
   return 0;
 }

@@ -29,6 +29,8 @@ CFLAGS    += -MMD $(INCLUDES)
 LINKFLAGS += -Llibraries $(addprefix -l,$(LIBRARY_NAMES)) -Wl,-rpath,\$$ORIGIN/../libraries
 LINKFLAGS += $(shell root-config --glibs) -lSpectrum
 
+ROOT_LIBFLAGS := $(shell root-config --libs)
+
 UTIL_O_FILES    := $(patsubst %.$(SRC_SUFFIX),build/%.o,$(wildcard utils/*.$(SRC_SUFFIX)))
 SANDBOX_O_FILES := $(patsubst %.$(SRC_SUFFIX),build/%.o,$(wildcard sandbox/*.$(SRC_SUFFIX)))
 EXE_O_FILES     := $(UTIL_O_FILES) $(SANDBOX_O_FILES)
@@ -68,28 +70,34 @@ libdir          = $(shell find libraries -name $(1) -type d)
 lib_src_files   = $(shell find $(call libdir,$(1)) -name "*.$(SRC_SUFFIX)")
 lib_o_files     = $(patsubst %.$(SRC_SUFFIX),build/%.o,$(call lib_src_files,$(1)))
 lib_linkdef     = $(wildcard $(call libdir,$(1))/LinkDef.h)
-lib_dictionary  = $(patsubst %/LinkDef.h,build/%/Dictionary.o,$(call lib_linkdef,$(1)))
+lib_dictionary  = $(patsubst %/LinkDef.h,build/%/LibDictionary.o,$(call lib_linkdef,$(1)))
+
+print:
+	@echo "Libs = $(LIBRARY_OUTPUT)"
+	@echo "Libdir = $(call libdir,Janus)"
+	@echo "src = $(call lib_src_files,Janus)"
+	@echo "ofiles = $(call lib_o_files,Janus)"
+	@echo "dict = $(call lib_dictionary,Janus)"
 
 libraries/lib%.so: $$(call lib_o_files,%) $$(call lib_dictionary,%)
 	@echo -e "$(COM_COLOR)Building  $(OBJ_COLOR)$@ $(NO_COLOR)"
-	$(call run_and_test, $(CPP) -fPIC -shared -o $@ $^, $@)
+	$(call run_and_test, $(CPP) -fPIC -shared $(ROOT_LIBFLAGS) -o $@ $^, $@)
 
 build/%.o: %.$(SRC_SUFFIX)
 	@echo -e "$(COM_COLOR)Compiling $(OBJ_COLOR)$@ $(NO_COLOR)"
 	@mkdir -p $(dir $@)
 	$(call run_and_test, $(CPP) -fPIC -c $< -o $@ $(CFLAGS), $@)
 
-build/%/Dictionary.o: build/%/Dictionary.cc
+build/%/LibDictionary.o: build/%/LibDictionary.cc
 	@echo -e "$(COM_COLOR)Compiling $(OBJ_COLOR)$@ $(NO_COLOR)"
 	$(call run_and_test, $(CPP) -fPIC -c $< -o $@ $(CFLAGS), $@)
 
-
 dict_header_files = $(subst //,,$(shell head $(1) -n 1))
 
-build/%/Dictionary.cc: %/LinkDef.h
+build/%/LibDictionary.cc: %/LinkDef.h $$(call dict_header_files,%/LinkDef.h)
 	@echo -e "$(COM_COLOR)Building  $(OBJ_COLOR)$@ $(NO_COLOR)"
 	@mkdir -p $(dir $@)
-	$(call run_and_test, rootcint -f $@ -c $(INCLUDES) $(ROOTCFLAGS) -I$(dir $<) $(call dict_header_files,$<) $(notdir $<), $@)
+	$(call run_and_test,rootcint -f $@ -c $(INCLUDES) $(notdir $(call dict_header_files,$<)) $<, $@)
 
 -include $(shell find build -name '*.d' 2> /dev/null)
 
